@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ReClue</title>
+    <link rel="stylesheet" href="./popup.css" />
+  </head>
+  <body class="bg-slate-900 text-slate-100 antialiased">
+    <main id="app" class="p-4">
+      <header class="mb-3">
+        <h1 class="text-lg font-semibold tracking-wide">ReClue</h1>
+        <p class="mt-0.5 text-xs text-slate-400">Stuck on a clue? Get another one — or the answer.</p>
+      </header>
+
+      <form id="lookup-form" class="grid grid-cols-[1fr_88px] items-end gap-2" autocomplete="off">
+        <label class="flex flex-col gap-1">
+          <span class="text-[11px] text-slate-400">Clue</span>
+          <input
+            id="clue-input"
+            name="clue"
+            type="text"
+            placeholder="e.g. Capital of France"
+            required
+            class="w-full rounded-md border border-slate-700 bg-slate-800 px-2 py-2 text-sm focus:border-indigo-400 focus:outline-none"
+          />
+        </label>
+        <label class="flex flex-col gap-1">
+          <span class="text-[11px] text-slate-400"># letters</span>
+          <input
+            id="length-input"
+            name="length"
+            type="number"
+            min="1"
+            max="30"
+            inputmode="numeric"
+            placeholder="—"
+            class="w-full rounded-md border border-slate-700 bg-slate-800 px-2 py-2 text-sm focus:border-indigo-400 focus:outline-none"
+          />
+        </label>
+        <button
+          id="lookup-btn"
+          type="submit"
+          class="col-span-2 cursor-pointer rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Look up
+        </button>
+      </form>
+
+      <section id="status" class="mt-3 min-h-0 text-sm text-slate-400" role="status" aria-live="polite"></section>
+      <section id="results" class="mt-3 flex flex-col gap-2" aria-live="polite"></section>
+    </main>
+
+    <script type="module" src="./popup.ts"></script>
+  </body>
+</html>

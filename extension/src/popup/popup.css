@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+/* Popups have no intrinsic size; give the body a fixed width so Chrome/Firefox
+   size the popup correctly. */
+html,
+body {
+  width: 340px;
+}
