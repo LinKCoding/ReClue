@@ -13,6 +13,17 @@ export default defineManifest({
     default_popup: 'src/popup/index.html',
     default_title: 'ReClue — alternative crossword clues',
   },
+  // `_execute_action` is the reserved command that opens the popup. Users can
+  // rebind it at chrome://extensions/shortcuts (Chrome) or about:addons (Firefox).
+  commands: {
+    _execute_action: {
+      suggested_key: {
+        default: 'Ctrl+Shift+Y',
+        mac: 'Command+Shift+Y',
+      },
+      description: 'Open ReClue',
+    },
+  },
   permissions: [],
   host_permissions: ['http://localhost:5555/*'],
   browser_specific_settings: {
