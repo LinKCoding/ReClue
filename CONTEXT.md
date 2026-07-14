@@ -16,6 +16,10 @@ looking up a clue against a historical database of crossword clues and answers
   distinct clue across the dataset.
 - **Length**: Optional user-supplied number of letters in the answer, used to
   narrow candidate answers.
+- **Known letters**: Optional user-supplied pattern of confirmed letters and blanks
+  (e.g. `KE_P`), where `_` represents exactly one unknown letter. Takes precedence
+  over **Length** when both are supplied — the pattern's character count is used as
+  the effective length. Matching is case-insensitive.
 
 ## Architecture
 
@@ -27,7 +31,8 @@ looking up a clue against a historical database of crossword clues and answers
     build). No UI framework for the MVP given the small popup surface.
     **Tailwind CSS v4** for styling (via `@tailwindcss/vite`, zero-config).
   - Popup follows a **no-spoiler staged flow** (see below).
-- **Back-end**: Node.js API service.
+- **Back-end**: Supabase Edge Function (`supabase/functions/api/`) — a single Deno
+  function routing `/lookup`, `/reclue`, and `/reveal`.
 - **Database**: PostgreSQL, hosted via Supabase.
 
 ## Clue Matching
@@ -41,7 +46,7 @@ looking up a clue against a historical database of crossword clues and answers
 - **API contract (fixed now).** To honor the no-spoiler flow at the *network*
   layer (answer text must never reach the client until "reveal"), the lookup
   returns only non-spoiling metadata; clue/answer text is fetched on demand.
-  - `POST /lookup { clue, length? }` →
+  - `POST /lookup { clue, length?, knownLetters? }` →
     `{ candidates: [{ id, length, occurrences, score, hasReclue }] }`
     - `id`: opaque server-issued token identifying the candidate answer.
     - `score`: 1.0-ish for exact match (frequency-derived); a future `pg_trgm`
@@ -53,9 +58,9 @@ looking up a clue against a historical database of crossword clues and answers
 
 ## Request Topology
 
-Extension → **Node API** → Supabase Postgres. The extension knows only one base
-URL (`VITE_API_BASE_URL`); DB/Supabase credentials and all matching, ranking, and
-normalization logic stay server-side. The extension never talks to Supabase
+Extension → **Supabase Edge Function** → Supabase Postgres. The extension knows
+only one base URL (`VITE_API_BASE_URL`); DB credentials and all matching, ranking,
+and normalization logic stay server-side. The extension never talks to Supabase
 directly.
 
 ## Popup Flow (no-spoiler)
@@ -64,7 +69,7 @@ The re-clue feature only has value if the answer stays hidden until the user
 explicitly asks for it. The popup therefore never renders candidate answer text
 until "reveal" is pressed.
 
-1. **Input** — clue field + optional length.
+1. **Input** — clue field + optional length + optional known-letters pattern.
 2. **Match summary** — show non-spoiling metadata only: how many candidate
    answers matched and their lengths (e.g. "Found 3 possible answers — lengths
    5, 5, 7"). No answer text. A supplied length usually collapses this to one.
@@ -74,7 +79,8 @@ until "reveal" is pressed.
    - **Reveal answer** → shows the answer outright.
 
 Rules:
-- The **length filter is the primary disambiguator**; encourage entering it.
+- The **known-letters pattern is the strongest disambiguator**; length is secondary.
+  If both are supplied, known letters win — the pattern's length is used.
 - If a candidate answer has **no alternative clue** (appears once in the DB),
   the "Give me another clue" action is disabled/hidden for that candidate with a
   note that no alternative exists.

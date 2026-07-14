@@ -35,10 +35,13 @@ Deno.serve(async (req) => {
   const body = await req.json().catch(() => ({}));
 
   if (route === 'lookup') {
-    const { clue, length } = body as { clue?: string; length?: number };
+    const { clue, length, knownLetters } = body as { clue?: string; length?: number; knownLetters?: string };
     if (!clue || typeof clue !== 'string') return json({ error: 'clue is required' }, 400);
 
     const normalized = normalizeClue(clue);
+    const pattern = knownLetters ? knownLetters.replace(/%/g, '_') : null;
+    const effectiveLength = pattern ? pattern.length : (length ?? null);
+
     const result = await pool.query<{ word: string; occurrences: string; has_reclue: boolean }>(
       `SELECT
          c1.word,
@@ -47,9 +50,10 @@ Deno.serve(async (req) => {
        FROM crossword_clues c1
        WHERE LOWER(TRIM(REGEXP_REPLACE(REGEXP_REPLACE(clue, '[.!?,;]+$', ''), '\\s+', ' ', 'g'))) = $1
          AND ($2::int IS NULL OR LENGTH(c1.word) = $2)
+         AND ($3::text IS NULL OR c1.word ILIKE $3)
        GROUP BY c1.word
        ORDER BY occurrences DESC`,
-      [normalized, length ?? null],
+      [normalized, effectiveLength, pattern],
     );
 
     return json({
