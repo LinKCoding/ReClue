@@ -4,63 +4,115 @@ ReClue is a Chrome/Firefox extension that helps crossword solvers by providing a
 **alternative clue** (a "re-clue") for the entry you're stuck on — or, if you'd
 rather, the answer outright.
 
-It works against a database of crossword clues and answers spanning **1993–2021**.
-Because the same answer has been clued many different ways over the years, ReClue
-can hand you a *different* clue for the same answer to jog your memory without
-spoiling it.
+It works against a database of NYT crossword clues and answers spanning **1993–2021**
+(~780k entries). Because the same answer has been clued many different ways over the
+years, ReClue can hand you a *different* clue for the same answer to jog your memory
+without spoiling it.
 
 ## How to use it
 
-1. Feed the clue to the extension, optionally including the number of letters the
-   answer has (this narrows things down when a clue matches more than one answer).
-2. If a match is found, you can ask for:
-   - **a) a re-clue** — an alternative clue for the answer (when one exists), or
-   - **b) the answer** outright.
+1. Type the clue you're stuck on into the popup, optionally including the answer
+   length (this narrows things down when a clue matches more than one answer).
+2. If a match is found, for each candidate answer you can ask for:
+   - **a re-clue** — an alternative clue for the same answer (when one exists), or
+   - **the answer** outright.
 
 ## No spoilers by design
 
-The whole point of a re-clue is to help *without* giving the answer away, so
-ReClue keeps the answer hidden until you explicitly ask to reveal it — and it
-does so at the network layer, not just in the UI.
-
-A lookup returns only **non-spoiling metadata** about each candidate answer (how
-many letters it has, how often that clue→answer pairing occurs, and whether a
-re-clue is available). The actual clue or answer text is fetched only when you
-press "Give me another clue" or "Reveal answer". This means the answer never even
-reaches your browser until you choose to see it.
-
-When a clue matches several possible answers, each is shown as an anonymous slot
-("Answer 1 — 5 letters"); entering the letter count usually collapses this to one.
-If an answer only appears once in the database, no re-clue exists for it, so that
-option is disabled.
+The answer stays hidden until you explicitly ask for it — enforced at the network
+layer, not just in the UI. A lookup returns only non-spoiling metadata (letter count,
+how often the answer appeared in the dataset, whether a re-clue is available). The
+actual clue or answer text is fetched only when you press "Give me another clue" or
+"Reveal answer".
 
 See [`docs/adr/0001-no-spoiler-lookup-contract.md`](docs/adr/0001-no-spoiler-lookup-contract.md)
-for the reasoning and the exact API contract.
+for the full reasoning and API contract.
 
 ## Architecture
 
 ```
-Browser extension (popup)  ->  Node API (:5555)  ->  Supabase (PostgreSQL)
+Browser extension (popup)  →  Supabase Edge Function (/api)  →  Supabase PostgreSQL
 ```
 
-- **Front-end** — MV3 toolbar popup for Chrome & Firefox. Vanilla TypeScript +
-  Vite (CRXJS) + Tailwind v4. See [`extension/`](extension/) and its README.
-- **Back-end** — Node API exposing `/lookup`, `/reclue`, and `/reveal`. The
-  extension knows only one base URL; all matching, ranking, normalization, and
-  database credentials stay server-side. *(Not yet scaffolded.)*
-- **Database** — PostgreSQL hosted on Supabase, holding the historical
-  clue/answer dataset. *(Not yet scaffolded.)*
+- **Extension** — MV3 toolbar popup for Chrome & Firefox. Vanilla TypeScript + Vite
+  (CRXJS) + Tailwind v4. Lives in [`extension/`](extension/).
+- **API** — Supabase Edge Function (`supabase/functions/api/`) exposing `/lookup`,
+  `/reclue`, and `/reveal`. All matching, ranking, normalization, and DB credentials
+  stay server-side; the extension only knows one base URL.
+- **Database** — PostgreSQL hosted on Supabase, ~780k rows of historical NYT clues.
 
-### Clue matching
+## Setup
 
-The MVP uses **normalized exact matching**: both the stored clue and your query
-are lowercased, trimmed, whitespace-collapsed, and stripped of trailing
-punctuation before comparison, optionally filtered by answer length. The API
-contract returns a ranked list of candidates with a `score` field, so upgrading
-to fuzzy matching (Postgres `pg_trgm` trigram similarity) later is a
-server-side-only change — no front-end or contract changes required.
+### Prerequisites
+
+- [Bun](https://bun.sh)
+- [Supabase CLI](https://supabase.com/docs/guides/cli) (`brew install supabase/tap/supabase`)
+- [psql](https://www.postgresql.org/docs/current/app-psql.html) (`brew install libpq && brew link --force libpq`)
+- A [Supabase](https://supabase.com) project
+
+### 1. Database
+
+Create the table and import the dataset:
+
+```sh
+# Create the table
+psql "$DATABASE_URL" -c "
+CREATE TABLE IF NOT EXISTS crossword_clues (
+  id BIGSERIAL PRIMARY KEY,
+  date DATE,
+  word TEXT NOT NULL,
+  clue TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_crossword_clues_word ON crossword_clues (word);"
+
+# Convert CSV encoding then import (~780k rows, takes ~30s)
+iconv -f LATIN1 -t UTF-8 nytcrosswords.csv > nytcrosswords_utf8.csv
+
+psql "$DATABASE_URL" -c "
+CREATE TEMP TABLE clues_import (date TEXT, word TEXT, clue TEXT);
+" -c "\COPY clues_import FROM 'nytcrosswords_utf8.csv' CSV HEADER;" -c "
+INSERT INTO crossword_clues (date, word, clue)
+SELECT TO_DATE(date, 'MM/DD/YYYY'), word, clue FROM clues_import;"
+```
+
+### 2. Edge Function
+
+```sh
+supabase login
+supabase link --project-ref <your-project-ref>
+supabase secrets set DATABASE_URL="<your-database-url>"
+supabase functions deploy api --project-ref <your-project-ref>
+```
+
+### 3. Extension (local dev against localhost)
+
+```sh
+cd extension
+bun install
+bun run dev
+```
+
+Load the unpacked extension:
+- **Chrome**: `chrome://extensions` → Developer mode → Load unpacked → select `dist/chrome`
+- **Firefox**: `about:debugging` → This Firefox → Load Temporary Add-on → pick `dist/firefox/manifest.json`
+
+The extension defaults to `http://localhost:5555` — to run the local server:
+
+```sh
+cd server
+bun install
+cp .env.example .env   # fill in DATABASE_URL
+bun run dev
+```
+
+### 4. Extension (production build against Supabase)
+
+```sh
+cd extension
+cp .env.example .env   # VITE_API_BASE_URL is pre-filled with the Supabase functions URL
+bun run build
+```
 
 ## Project docs
 
-- [`CONTEXT.md`](CONTEXT.md) — domain glossary, terminology, and architecture of record.
-- [`docs/adr/`](docs/adr/) — architectural decision records.
+- [`CONTEXT.md`](CONTEXT.md) — domain glossary, terminology, and architecture.
