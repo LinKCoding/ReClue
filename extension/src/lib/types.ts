@@ -6,6 +6,8 @@ export interface LookupRequest {
   clue: string;
   /** Optional answer length; the primary disambiguator between candidates. */
   length?: number;
+  /** Optional known letters, for unknowns, use _. */
+  knownLetters?: string;
 }
 
 /**

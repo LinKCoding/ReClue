@@ -5,11 +5,12 @@ import type { Candidate } from '../lib/types';
 const form = document.getElementById('lookup-form') as HTMLFormElement;
 const clueInput = document.getElementById('clue-input') as HTMLInputElement;
 const lengthInput = document.getElementById('length-input') as HTMLInputElement;
+const knownLettersInput = document.getElementById('known-letters-input') as HTMLInputElement;
 const lookupBtn = document.getElementById('lookup-btn') as HTMLButtonElement;
 const statusEl = document.getElementById('status') as HTMLElement;
 const resultsEl = document.getElementById('results') as HTMLElement;
 
-const GHOST_BTN =
+const DISABLED_BTN =
   'flex-1 cursor-pointer rounded-md bg-slate-700 px-3 py-2 text-xs font-semibold text-slate-100 transition-colors hover:bg-slate-600 disabled:cursor-not-allowed disabled:opacity-50';
 
 const setStatus = (message: string, isError = false): void => {
@@ -52,13 +53,13 @@ const renderCandidate = (candidate: Candidate, index: number, originalClue: stri
 
   const reclueBtn = document.createElement('button');
   reclueBtn.type = 'button';
-  reclueBtn.className = GHOST_BTN;
+  reclueBtn.className = DISABLED_BTN;
   reclueBtn.textContent = 'Give me another clue';
   reclueBtn.disabled = !candidate.hasReclue;
 
   const revealBtn = document.createElement('button');
   revealBtn.type = 'button';
-  revealBtn.className = GHOST_BTN;
+  revealBtn.className = DISABLED_BTN;
   revealBtn.textContent = 'Reveal answer';
 
   actions.append(reclueBtn, revealBtn);
@@ -139,13 +140,15 @@ const onSubmit = async (event: SubmitEvent): Promise<void> => {
   const lengthRaw = lengthInput.value.trim();
   const length = lengthRaw ? Number(lengthRaw) : undefined;
 
+  const knownLetters = knownLettersInput.value.trim();
+
   lookupBtn.disabled = true;
   lookupBtn.textContent = 'Looking up…';
   clearResults();
   setStatus('');
 
   try {
-    const { candidates } = await lookup({ clue, length });
+    const { candidates } = await lookup({ clue, length, knownLetters });
     if (candidates.length === 0) {
       setStatus('No match found in the clue database. Try rephrasing the clue.');
     } else {
