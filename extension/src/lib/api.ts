@@ -42,8 +42,8 @@ export function lookup(req: LookupRequest): Promise<LookupResponse> {
 }
 
 /** Fetch an alternative clue for a candidate (does not reveal the answer). */
-export function reclue(id: string): Promise<ReclueResponse> {
-  return post<ReclueResponse>('/reclue', { id });
+export function reclue(id: string, exclude: string[] = []): Promise<ReclueResponse> {
+  return post<ReclueResponse>('/reclue', { id, exclude });
 }
 
 /** Reveal the answer for a candidate. */

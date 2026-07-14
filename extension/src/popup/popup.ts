@@ -35,7 +35,7 @@ const errorMessage = (err: unknown): string =>
  * Renders one candidate as an anonymous slot. No answer or clue text is present
  * until the user asks for it (no-spoiler flow).
  */
-const renderCandidate = (candidate: Candidate, index: number): HTMLElement => {
+const renderCandidate = (candidate: Candidate, index: number, originalClue: string): HTMLElement => {
   const card = document.createElement('div');
   card.className = 'rounded-md border border-slate-700 bg-slate-800 p-2.5';
 
@@ -74,11 +74,14 @@ const renderCandidate = (candidate: Candidate, index: number): HTMLElement => {
     output.append(note);
   }
 
+  const seenClues: string[] = [originalClue];
+
   reclueBtn.addEventListener('click', async () => {
     reclueBtn.disabled = true;
     reclueBtn.textContent = 'Loading…';
     try {
-      const { clue } = await reclue(candidate.id);
+      const { clue } = await reclue(candidate.id, seenClues);
+      seenClues.push(clue);
       const box = document.createElement('div');
       box.className = 'mt-2 rounded-md bg-slate-700 p-2 text-sm';
       box.innerHTML = `<span class="text-[11px] text-slate-400">Alternative clue</span><p class="mt-0.5">${escapeHtml(clue)}</p>`;
@@ -113,7 +116,7 @@ const renderCandidate = (candidate: Candidate, index: number): HTMLElement => {
   return card;
 };
 
-const renderCandidates = (candidates: Candidate[]): void => {
+const renderCandidates = (candidates: Candidate[], originalClue: string): void => {
   clearResults();
 
   const summary = document.createElement('p');
@@ -125,7 +128,7 @@ const renderCandidates = (candidates: Candidate[]): void => {
       : `Found ${candidates.length} possible answers — lengths ${lengths}. Add a letter count to narrow it down.`;
   resultsEl.append(summary);
 
-  candidates.forEach((candidate, i) => resultsEl.append(renderCandidate(candidate, i)));
+  candidates.forEach((candidate, i) => resultsEl.append(renderCandidate(candidate, i, originalClue)));
 };
 
 const onSubmit = async (event: SubmitEvent): Promise<void> => {
@@ -146,7 +149,7 @@ const onSubmit = async (event: SubmitEvent): Promise<void> => {
     if (candidates.length === 0) {
       setStatus('No match found in the clue database. Try rephrasing the clue.');
     } else {
-      renderCandidates(candidates);
+      renderCandidates(candidates, clue);
     }
   } catch (err) {
     setStatus(errorMessage(err), true);

@@ -37,13 +37,13 @@ app.post('/lookup', async (req, res) => {
     has_reclue: boolean;
   }>(
     `SELECT
-       word,
-       COUNT(*) AS occurrences,
-       COUNT(DISTINCT clue) > 1 AS has_reclue
-     FROM crossword_clues
+       c1.word,
+       (SELECT COUNT(*) FROM crossword_clues c2 WHERE c2.word = c1.word) AS occurrences,
+       (SELECT COUNT(DISTINCT clue) FROM crossword_clues c3 WHERE c3.word = c1.word) > 1 AS has_reclue
+     FROM crossword_clues c1
      WHERE LOWER(TRIM(REGEXP_REPLACE(REGEXP_REPLACE(clue, '[.!?,;]+$', ''), '\\s+', ' ', 'g'))) = $1
-       AND ($2::int IS NULL OR LENGTH(word) = $2)
-     GROUP BY word
+       AND ($2::int IS NULL OR LENGTH(c1.word) = $2)
+     GROUP BY c1.word
      ORDER BY occurrences DESC`,
     [normalized, length ?? null],
   );
@@ -59,18 +59,19 @@ app.post('/lookup', async (req, res) => {
   res.json({ candidates });
 });
 
-// POST /reclue { id } → { clue }
+// POST /reclue { id, exclude? } → { clue }
 app.post('/reclue', async (req, res) => {
-  const { id } = req.body as { id?: string };
+  const { id, exclude } = req.body as { id?: string; exclude?: string[] };
   if (!id || typeof id !== 'string') {
     res.status(400).json({ error: 'id is required' });
     return;
   }
 
   const word = decodeId(id);
+  const excluded = Array.isArray(exclude) ? exclude : [];
   const result = await pool.query<{ clue: string }>(
-    `SELECT clue FROM crossword_clues WHERE word = $1 ORDER BY RANDOM() LIMIT 1`,
-    [word],
+    `SELECT clue FROM crossword_clues WHERE word = $1 AND clue != ALL($2::text[]) ORDER BY RANDOM() LIMIT 1`,
+    [word, excluded],
   );
 
   if (result.rows.length === 0) {
