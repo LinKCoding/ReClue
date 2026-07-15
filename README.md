@@ -48,7 +48,7 @@ Browser extension (popup)  →  Supabase Edge Function (/api)  →  Supabase Pos
 - [Bun](https://bun.sh)
 - [Supabase CLI](https://supabase.com/docs/guides/cli) (`brew install supabase/tap/supabase`)
 - [psql](https://www.postgresql.org/docs/current/app-psql.html) (`brew install libpq && brew link --force libpq`)
-- A [Supabase](https://supabase.com) project
+- [Supabase](https://supabase.com)
 
 ### 1. Database
 
