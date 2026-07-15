@@ -84,6 +84,12 @@ supabase secrets set DATABASE_URL="<your-database-url>"
 supabase functions deploy api --project-ref <your-project-ref>
 ```
 
+To redeploy after changes:
+
+```sh
+bun run deploy
+```
+
 ### 3. Extension (local dev against localhost)
 
 ```sh
@@ -96,14 +102,8 @@ Load the unpacked extension:
 - **Chrome**: `chrome://extensions` → Developer mode → Load unpacked → select `dist/chrome`
 - **Firefox**: `about:debugging` → This Firefox → Load Temporary Add-on → pick `dist/firefox/manifest.json`
 
-The extension defaults to `http://localhost:5555` — to run the local server:
-
-```sh
-cd server
-bun install
-cp .env.example .env   # fill in DATABASE_URL
-bun run dev
-```
+The extension defaults to `http://localhost:5555` when no `.env` is present. For
+development against the live Supabase function, follow step 4 below instead.
 
 ### 4. Extension (production build against Supabase)
 

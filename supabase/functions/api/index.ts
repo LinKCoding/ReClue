@@ -72,9 +72,9 @@ Deno.serve(async (req) => {
     if (!id || typeof id !== 'string') return json({ error: 'id is required' }, 400);
 
     const word = decodeId(id);
-    const excluded = Array.isArray(exclude) ? exclude : [];
+    const excluded = Array.isArray(exclude) ? exclude.map((c) => c.toLowerCase()) : [];
     const result = await pool.query<{ clue: string }>(
-      `SELECT clue FROM crossword_clues WHERE word = $1 AND clue != ALL($2::text[]) ORDER BY RANDOM() LIMIT 1`,
+      `SELECT clue FROM crossword_clues WHERE word = $1 AND LOWER(clue) != ALL($2::text[]) ORDER BY RANDOM() LIMIT 1`,
       [word, excluded],
     );
 

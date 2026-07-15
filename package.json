@@ -1,0 +1,7 @@
+{
+  "name": "reclue",
+  "private": true,
+  "scripts": {
+    "deploy": "supabase functions deploy api --project-ref amxfasifudmulzizpbhx"
+  }
+}
