@@ -27,8 +27,6 @@ export interface Candidate {
   length: number;
   /** How many times this clue -> answer pairing occurs in the dataset. */
   occurrences: number;
-  /** Match confidence. 1.0-ish for exact match; real similarity once fuzzy lands. */
-  score: number;
   /** Whether an alternative clue exists for this answer (enables "re-clue"). */
   hasReclue: boolean;
 }

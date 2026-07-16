@@ -47,11 +47,8 @@ looking up a clue against a historical database of crossword clues and answers
   layer (answer text must never reach the client until "reveal"), the lookup
   returns only non-spoiling metadata; clue/answer text is fetched on demand.
   - `POST /lookup { clue, length?, knownLetters? }` →
-    `{ candidates: [{ id, length, occurrences, score, hasReclue }] }`
+    `{ candidates: [{ id, length, occurrences, hasReclue }] }`
     - `id`: opaque server-issued token identifying the candidate answer.
-    - `score`: 1.0-ish for exact match (frequency-derived); a future `pg_trgm`
-      fuzzy upgrade repopulates it with real similarity — no front-end/contract
-      change, just the one query + a trigram index migration.
     - `hasReclue`: whether an alternative clue exists for this candidate.
   - `POST /reclue { id }` → `{ clue }` (an alternative clue; no answer text).
   - `POST /reveal { id }` → `{ answer }`.

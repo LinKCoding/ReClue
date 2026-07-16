@@ -22,7 +22,7 @@ no-spoiler premise at the network layer even if the UI hides the text.
 fetched on explicit user action via separate endpoints.
 
 - `POST /lookup { clue, length? }`
-  → `{ candidates: [{ id, length, occurrences, score, hasReclue }] }`
+  → `{ candidates: [{ id, length, occurrences, hasReclue }] }`
   - `id` is an opaque server-issued token for a candidate answer.
   - No `answer` and no alternative-clue text is included.
 - `POST /reclue { id }` → `{ clue }` (an alternative clue; still no answer text).
@@ -35,9 +35,6 @@ fetched on explicit user action via separate endpoints.
   layer, not just the UI.
 - Cost: two extra endpoints and additional round-trips; the server must maintain
   a mapping from opaque `id` → candidate answer for the follow-up calls.
-- `score` is present but ~constant (frequency-derived) under the MVP's normalized
-  exact match; it becomes a real similarity value if/when `pg_trgm` fuzzy search
-  is adopted — no contract or front-end change required.
 
 ## Alternatives considered
 

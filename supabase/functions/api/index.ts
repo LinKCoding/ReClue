@@ -82,7 +82,6 @@ Deno.serve(async (req: Request) => {
           id: encodeId(row.word),
           length: row.word.length,
           occurrences: parseInt(row.occurrences, 10),
-          score: 1.0,
           hasReclue: row.has_reclue,
         })),
       });
@@ -109,7 +108,6 @@ Deno.serve(async (req: Request) => {
           id: encodeId(row.word),
           length: row.word.length,
           occurrences: parseInt(row.occurrences, 10),
-          score: 1.0,
           hasReclue: row.has_reclue,
         })),
       });

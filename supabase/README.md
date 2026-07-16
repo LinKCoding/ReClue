@@ -29,7 +29,7 @@ All routes are handled by the single `api` function. JWT verification is disable
 
 | Route | Body | Response |
 |---|---|---|
-| `POST /api/lookup` | `{ clue, length?, knownLetters? }` | `{ candidates: [{ id, length, occurrences, score, hasReclue }] }` |
+| `POST /api/lookup` | `{ clue, length?, knownLetters? }` | `{ candidates: [{ id, length, occurrences, hasReclue }] }` |
 | `POST /api/reclue` | `{ id, exclude? }` | `{ clue }` |
 | `POST /api/reveal` | `{ id }` | `{ answer }` |
 
