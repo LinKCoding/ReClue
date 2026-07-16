@@ -55,6 +55,15 @@ looking up a clue against a historical database of crossword clues and answers
     - `hasReclue`: whether an alternative clue exists for this candidate.
   - `POST /reclue { id }` → `{ clue }` (an alternative clue; no answer text).
   - `POST /reveal { id }` → `{ answer }`.
+- **Known-letters fallback.** If the clue itself has no direct match but
+  `knownLetters` was supplied, the response is
+  `{ candidates: [], fallback: { count } }` — `count` is how many answers match
+  the pattern/length alone (no clue relationship). This never auto-reveals
+  candidates; the popup must prompt ("Nothing matches that clue directly, but
+  N answers match your known letters — show them?") and only fetch them on an
+  explicit follow-up `POST /lookup { clue, length?, knownLetters, patternOnly: true }`,
+  which matches purely on the pattern/length. `clue` remains required on every
+  request, including this follow-up — it's just unused by the patternOnly query.
 
 ## Request Topology
 

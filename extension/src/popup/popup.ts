@@ -1,6 +1,6 @@
 import './popup.css';
 import { ApiError, lookup, reclue, reveal } from '../lib/api';
-import type { Candidate } from '../lib/types';
+import type { Candidate, LookupRequest } from '../lib/types';
 
 const form = document.getElementById('lookup-form') as HTMLFormElement;
 const clueInput = document.getElementById('clue-input') as HTMLInputElement;
@@ -117,6 +117,51 @@ const renderCandidate = (candidate: Candidate, index: number, originalClue: stri
   return card;
 };
 
+/**
+ * Shown when the clue itself has no direct match but the known-letters
+ * pattern alone does. Requires an explicit click before running the
+ * pattern-only search, so a non-matching guess doesn't silently turn into a
+ * spoiler-free-but-unrelated answer list.
+ */
+const renderFallbackPrompt = (count: number, request: LookupRequest): void => {
+  clearResults();
+
+  const card = document.createElement('div');
+  card.className = 'rounded-md border border-slate-700 bg-slate-800 p-2.5';
+
+  const message = document.createElement('p');
+  message.className = 'text-sm text-slate-300';
+  message.textContent = `Nothing matches that clue directly, but ${count} answer${count === 1 ? '' : 's'} match your known letters.`;
+  card.append(message);
+
+  const showBtn = document.createElement('button');
+  showBtn.type = 'button';
+  showBtn.className =
+    'mt-2 w-full cursor-pointer rounded-md bg-indigo-500 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-50';
+  showBtn.textContent = 'Show potential answers';
+
+  showBtn.addEventListener('click', async () => {
+    showBtn.disabled = true;
+    showBtn.textContent = 'Loading…';
+    try {
+      const { candidates } = await lookup({ ...request, patternOnly: true });
+      if (candidates.length === 0) {
+        clearResults();
+        setStatus('No match found in the clue database. Try rephrasing the clue.');
+      } else {
+        renderCandidates(candidates, request.clue);
+      }
+    } catch (err) {
+      showBtn.disabled = false;
+      showBtn.textContent = 'Show potential answers';
+      setStatus(errorMessage(err), true);
+    }
+  });
+
+  card.append(showBtn);
+  resultsEl.append(card);
+};
+
 const renderCandidates = (candidates: Candidate[], originalClue: string): void => {
   clearResults();
 
@@ -148,11 +193,14 @@ const onSubmit = async (event: SubmitEvent): Promise<void> => {
   setStatus('');
 
   try {
-    const { candidates } = await lookup({ clue, length, knownLetters });
-    if (candidates.length === 0) {
-      setStatus('No match found in the clue database. Try rephrasing the clue.');
-    } else {
+    const request: LookupRequest = { clue, length, knownLetters };
+    const { candidates, fallback } = await lookup(request);
+    if (candidates.length > 0) {
       renderCandidates(candidates, clue);
+    } else if (fallback && fallback.count > 0) {
+      renderFallbackPrompt(fallback.count, request);
+    } else {
+      setStatus('No match found in the clue database. Try rephrasing the clue.');
     }
   } catch (err) {
     setStatus(errorMessage(err), true);

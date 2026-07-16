@@ -8,6 +8,11 @@ export interface LookupRequest {
   length?: number;
   /** Optional known letters, for unknowns, use _. */
   knownLetters?: string;
+  /**
+   * When true, match purely on knownLetters/length and skip clue matching.
+   * Only used for the follow-up call after a fallback prompt is accepted.
+   */
+  patternOnly?: boolean;
 }
 
 /**
@@ -30,6 +35,12 @@ export interface Candidate {
 
 export interface LookupResponse {
   candidates: Candidate[];
+  /**
+   * Present only when candidates is empty and knownLetters was supplied: the
+   * pattern alone has matches, offered without revealing them. See
+   * LookupRequest.patternOnly for the follow-up call that fetches them.
+   */
+  fallback?: { count: number };
 }
 
 export interface ReclueResponse {
